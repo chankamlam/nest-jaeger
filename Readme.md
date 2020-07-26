@@ -113,7 +113,7 @@ export class AppController {
 ![avatar](https://raw.githubusercontent.com/chankamlam/express-jaeger/master/pic/2.png)
 
 ## _config_
-> for what is usage of the param, pls look up to "jaeger-client"
+> for what is usage of the param, pls look up to [Jaeger Client for Node](https://www.npmjs.com/package/jaeger-client)
 ```
 {
   serviceName: "string",           // required
@@ -144,7 +144,7 @@ export class AppController {
 ```
 
 ## _options_
-> for what is usage of the param, pls look up to "jaeger-client"
+> for what is usage of the param, pls look up to [Jaeger Client for Node](https://www.npmjs.com/package/jaeger-client)
 ```
 {
     contextKey: "string",
@@ -202,7 +202,7 @@ span.finish();
 ### _tags_
 
 ### _axios_
-
+[axios](https://www.npmjs.com/package/axios)
 
 ## license
 MIT
