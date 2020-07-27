@@ -1,5 +1,12 @@
 # Nest-Jaeger
-
+```
+                 _        _                            
+ _ __   ___  ___| |_     (_) __ _  ___  __ _  ___ _ __ 
+| '_ \ / _ \/ __| __|____| |/ _` |/ _ \/ _` |/ _ \ '__|
+| | | |  __/\__ \ ||_____| | (_| |  __/ (_| |  __/ |   
+|_| |_|\___||___/\__|   _/ |\__,_|\___|\__, |\___|_|   
+                       |__/            |___/           
+```
 **Jaeger middleware to request tracing for nestjs application**
 
 ## Required Reading Opentracing 
@@ -55,6 +62,12 @@ bootstrap();
 
 
 ```
+```
+  app.useGlobalInterceptors(new JaegerInterceptor(config,options,(req,res)=>{
+    // do something here
+    req.jaeger.log("info","just for global log")
+  }));
+```
 ### Controller by using JaegerInterceptor
 ```
 import { Controller, Get, UseInterceptors } from '@nestjs/common';
@@ -92,6 +105,7 @@ export class AppController {
     // will use JaegerInterceptor when binding JaegerInterceptor globally
    @Get("/test")
    test(@Req req){
+     req.jaeger.setTag(req.jaeger.tags.ERROR,true)
      req.jaeger.log("error","err....") // jaeger object is binded after you use JaegerInterceptor globally
      return "test"
    }
@@ -183,6 +197,11 @@ jaeger.setTag(tags.ERROR,true)
 jaeger.setTag("warning",true)
 
 ```
+### _setTracingTag_
+```
+const jaeger = req.jaeger
+jaeger.setTracingTag("waybill","wb-123456")
+```
 ### _addTags_
 ```
 const jaeger = req.jaeger
@@ -200,7 +219,7 @@ span.setTag("info",true)
 span.finish();
 ```
 ### _tags_
-
+predefined tag, some come from [OpenTracing project](http://opentracing.io)
 ### _axios_
 jaeger.axios wrap axios with tracing header, for usage detail pls look up to [axios](https://www.npmjs.com/package/axios)
 
