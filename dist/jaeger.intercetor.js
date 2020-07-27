@@ -13,11 +13,11 @@ exports.JaegerInterceptor = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const operators_1 = require("rxjs/operators");
-const { initTracer } = require("jaeger-client");
-const { FORMAT_HTTP_HEADERS, Tags } = require("opentracing");
-const axios = require("axios");
-const debug = require("debug")("log");
-const tags = Object.assign(Object.assign({}, Tags), { "PROTOCAL": "protocal", "TRACING_TAG": "tracing-tag" });
+const jaeger_client_1 = require("jaeger-client");
+const opentracing_1 = require("opentracing");
+const axios_1 = require("axios");
+const debug_1 = require("debug");
+const tags = Object.assign(Object.assign({}, opentracing_1.Tags), { "PROTOCAL": "protocal", "TRACING_TAG": "tracing-tag" });
 const defaultSampler = {
     type: "const",
     param: 1
@@ -48,12 +48,12 @@ let JaegerInterceptor = class JaegerInterceptor {
         if (!this.tracer) {
             const config = Object.assign(Object.assign({}, defaultConfig), cfg);
             const options = Object.assign(Object.assign({}, defaultOptions), opt);
-            this.tracer = initTracer(config, options);
+            this.tracer = jaeger_client_1.initTracer(config, options);
             this.cb = cb;
-            debug("init tracer ...");
+            debug_1.default("init tracer ...");
         }
         else {
-            debug("tracer already exsited");
+            debug_1.default("tracer already exsited");
         }
     }
     intercept(context, next) {
@@ -65,11 +65,11 @@ let JaegerInterceptor = class JaegerInterceptor {
             return next.handle();
         const req = context.switchToHttp().getRequest();
         const res = context.switchToHttp().getResponse();
-        const parent = this.tracer.extract(FORMAT_HTTP_HEADERS, req.headers);
+        const parent = this.tracer.extract(opentracing_1.FORMAT_HTTP_HEADERS, req.headers);
         const parentObj = parent ? { childOf: parent } : {};
         this.span = this.tracer.startSpan(req.headers.host + req.path, parentObj);
-        debug("===== headers =====");
-        debug(req.headers);
+        debug_1.default("===== headers =====");
+        debug_1.default(req.headers);
         if (!this.span)
             return next.handle();
         if (req.headers && req.headers[tags.TRACING_TAG]) {
@@ -79,8 +79,8 @@ let JaegerInterceptor = class JaegerInterceptor {
             const val = this.tracing_tag[key];
             this.span.setTag(key, val);
         }
-        debug("===== tracing_tag =====");
-        debug(this.tracing_tag);
+        debug_1.default("===== tracing_tag =====");
+        debug_1.default(this.tracing_tag);
         const createJaegerInstance = () => {
             return {
                 span: this.span,
@@ -92,12 +92,12 @@ let JaegerInterceptor = class JaegerInterceptor {
                     var options = {};
                     var headers = {};
                     headers[tags.TRACING_TAG] = JSON.stringify(this.tracing_tag);
-                    this.tracer.inject(this.span, FORMAT_HTTP_HEADERS, headers);
+                    this.tracer.inject(this.span, opentracing_1.FORMAT_HTTP_HEADERS, headers);
                     opts.headers = Object.assign(Object.assign({}, opts.headers), headers);
                     options = Object.assign({}, opts);
-                    debug("==========request headers======");
-                    debug(opts.headers);
-                    return axios(options);
+                    debug_1.default("==========request headers======");
+                    debug_1.default(opts.headers);
+                    return axios_1.default(options);
                 },
                 log: (name, content) => {
                     if (!this.span)
@@ -119,8 +119,8 @@ let JaegerInterceptor = class JaegerInterceptor {
                         return;
                     this.span.setTag(tag, val);
                     this.tracing_tag[tag] = val;
-                    debug("===== tracing_tag =====");
-                    debug(this.tracing_tag);
+                    debug_1.default("===== tracing_tag =====");
+                    debug_1.default(this.tracing_tag);
                 },
                 finish: () => {
                     if (!this.span)

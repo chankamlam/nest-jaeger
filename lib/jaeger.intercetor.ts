@@ -2,10 +2,10 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler,HttpService 
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-const { initTracer } = require("jaeger-client");
-const { FORMAT_HTTP_HEADERS,Tags } = require("opentracing");
-const axios = require("axios")
-const debug = require("debug")("log")
+import { initTracer } from "jaeger-client"
+import { FORMAT_HTTP_HEADERS,Tags } from "opentracing"
+import axios  from "axios"
+import debug  from "debug"
 
 const tags = {
   ...Tags,
