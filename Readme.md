@@ -202,7 +202,7 @@ export class AppController {
   // setup tag to master span
   setTag     : function(name,Value)
 
-  _// setup mutiple tags to master span_
+  // setup mutiple tags to master span
   addTags    : function({k1:v1,k2:v2})
 
   /*
