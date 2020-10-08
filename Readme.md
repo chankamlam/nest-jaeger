@@ -198,17 +198,22 @@ export class AppController {
 {
   // write the log to master span
   log        : function(name,content)
+
   // setup tag to master span
   setTag     : function(name,Value)
+
   // setup mutiple tags to master span
   addTags    : function({k1:v1,k2:v2})
+
   /*
    * create a new span under parent span,
    * if parentSpan is undefine will create a new one under default master span
    */
   createSpan : function(name,parentSpan?)
+
   // all defined tags of opentracing which can be used
   tags       : object
+
   // using it to remote call service if not it will be broken the tracing to next service
   axios      : function(url,options)
 }
