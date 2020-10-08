@@ -230,8 +230,10 @@ req.jaeger.log("info","..........")
 ```
 const jaeger = req.jaeger
 const tags = jaeger
+
 // using defined tags by opentracing
 jaeger.setTag(tags.ERROR,true)
+
 // using your customize tag
 jaeger.setTag("warning",true)
 
@@ -249,6 +251,7 @@ jaeger.setTracingTag("waybill","wb-123456")
 ```
 const jaeger = req.jaeger
 const tags = jaeger
+
 // add mutiple tag one time
 jaeger.addTags({"error":true,"info":true})
 ```
@@ -256,10 +259,13 @@ jaeger.addTags({"error":true,"info":true})
 ### _createSpan_
 
 ```
-const span = jaeger.createSpan("subSpanName")   // create a sub span under master span
+// create a sub span under master span
+const span = jaeger.createSpan("subSpanName")
+
 // you also can call method of span
 span.log("info","info......")
 span.setTag("info",true)
+
 // remember to call finish() if not there is no record send to jaeger
 span.finish();
 ```
