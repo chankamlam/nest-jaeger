@@ -3,7 +3,6 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  HttpService,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Observable } from "rxjs";
@@ -17,6 +16,8 @@ const TAGS = {
   PROTOCAL: "protocal",
   TRACING_TAG: "tracing-tag",
 };
+
+const UNKNOW = "Unknow";
 
 const DEFAULT_SAMPLER = {
   type: "const",
@@ -39,7 +40,7 @@ const DEFAULT_LOGGER = {
 const DEFAULT_OPTION = { logger: DEFAULT_LOGGER };
 
 const DEFAULT_CONFIG = {
-  serviceName: "Unknow",
+  serviceName: UNKNOW,
   reporter: DEFAULT_REPORTER,
   sampler: DEFAULT_SAMPLER,
 };
@@ -163,12 +164,12 @@ export class JaegerInterceptor implements NestInterceptor {
     req.jaeger = createJaegerInstance();
 
     // mark default tag of request
-    req.jaeger.setTag("request.ip", req.ip);
-    req.jaeger.setTag("request.method", req.method);
-    req.jaeger.setTag("request.headers", req.headers);
-    req.jaeger.setTag("request.path", req.path);
-    req.jaeger.setTag("request.body", req.body);
-    req.jaeger.setTag("request.query", req.query);
+    req.jaeger.setTag("request.ip", req.ip || UNKNOW);
+    req.jaeger.setTag("request.method", req.method || UNKNOW);
+    req.jaeger.setTag("request.headers", req.headers || UNKNOW);
+    req.jaeger.setTag("request.path", req.path || UNKNOW);
+    req.jaeger.setTag("request.body", req.body || UNKNOW);
+    req.jaeger.setTag("request.query", req.query || UNKNOW);
     //////////////////////////////////////////////////
 
     // handle customize callback from user
@@ -180,8 +181,8 @@ export class JaegerInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         //mark default tag of response
-        req.jaeger.setTag("response.state", res.statusCode);
-        req.jaeger.setTag("response.result", res.statusMessage);
+        req.jaeger.setTag("response.state", res.statusCode || UNKNOW);
+        req.jaeger.setTag("response.result", res.statusMessage || UNKNOW);
         req.jaeger.finish();
         ///////////////////////////////////////////////////
       })
