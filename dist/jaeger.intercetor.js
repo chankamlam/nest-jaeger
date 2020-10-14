@@ -16,49 +16,56 @@ const operators_1 = require("rxjs/operators");
 const jaeger_client_1 = require("jaeger-client");
 const opentracing_1 = require("opentracing");
 const axios_1 = require("axios");
-const debug_1 = require("debug");
-const tags = Object.assign(Object.assign({}, opentracing_1.Tags), { "PROTOCAL": "protocal", "TRACING_TAG": "tracing-tag" });
-const defaultSampler = {
+const TAGS = Object.assign(Object.assign({}, opentracing_1.Tags), { PROTOCAL: "protocal", TRACING_TAG: "tracing-tag" });
+const UNKNOW = "Unknow";
+const DEFAULT_SAMPLER = {
     type: "const",
-    param: 1
+    param: 1,
 };
-const defaultReporter = {
+const DEFAULT_REPORTER = {
     collectorEndpoint: "http://localhost:14268/api/traces",
 };
-const defaultLogger = {
-    info: msg => {
+const DEFAULT_LOGGER = {
+    info: (msg) => {
         console.log("JAEGER INFO ", msg);
     },
-    error: msg => {
+    error: (msg) => {
         console.log("JAEGER ERROR", msg);
-    }
+    },
 };
-const defaultOptions = { logger: defaultLogger };
-const defaultConfig = {
-    serviceName: "Unknow",
-    reporter: defaultReporter,
-    sampler: defaultSampler
+const DEFAULT_OPTION = { logger: DEFAULT_LOGGER };
+const DEFAULT_CONFIG = {
+    serviceName: UNKNOW,
+    reporter: DEFAULT_REPORTER,
+    sampler: DEFAULT_SAMPLER,
 };
 let JaegerInterceptor = class JaegerInterceptor {
-    constructor(cfg, opt, cb) {
+    constructor(cfg, opt, req_cb, res_cb) {
         this.tracer = undefined;
         this.span = undefined;
         this.tracing_tag = {};
-        this.cb = undefined;
+        this.req_cb = undefined;
+        this.res_cb = undefined;
         if (!this.tracer) {
-            const config = Object.assign(Object.assign({}, defaultConfig), cfg);
-            const options = Object.assign(Object.assign({}, defaultOptions), opt);
-            this.tracer = jaeger_client_1.initTracer(config, options);
-            this.cb = cb;
-            debug_1.default("init tracer ...");
+            try {
+                const config = Object.assign(Object.assign({}, DEFAULT_CONFIG), cfg);
+                const options = Object.assign(Object.assign({}, DEFAULT_OPTION), opt);
+                this.tracer = jaeger_client_1.initTracer(config, options);
+                this.req_cb = req_cb;
+                this.res_cb = res_cb;
+                console.log("[*]Init tracer ... [ DONE ] ");
+            }
+            catch (error) {
+                console.error("[*]Init tracer ... [ FAILED ] ");
+            }
         }
         else {
-            debug_1.default("tracer already exsited");
+            console.log(`[*]Tracer already existed`);
         }
     }
     intercept(context, next) {
         const reflector = new core_1.Reflector();
-        const except = reflector.get('ExceptJaegerInterceptor', context.getHandler());
+        const except = reflector.get("ExceptJaegerInterceptor", context.getHandler());
         if (except)
             return next.handle();
         if (!this.tracer)
@@ -68,35 +75,29 @@ let JaegerInterceptor = class JaegerInterceptor {
         const parent = this.tracer.extract(opentracing_1.FORMAT_HTTP_HEADERS, req.headers);
         const parentObj = parent ? { childOf: parent } : {};
         this.span = this.tracer.startSpan(req.headers.host + req.path, parentObj);
-        debug_1.default("===== headers =====");
-        debug_1.default(req.headers);
         if (!this.span)
             return next.handle();
-        if (req.headers && req.headers[tags.TRACING_TAG]) {
-            this.tracing_tag = JSON.parse(req.headers[tags.TRACING_TAG]);
+        if (req.headers && req.headers[TAGS.TRACING_TAG]) {
+            this.tracing_tag = JSON.parse(req.headers[TAGS.TRACING_TAG]);
         }
         for (const key in this.tracing_tag) {
             const val = this.tracing_tag[key];
             this.span.setTag(key, val);
         }
-        debug_1.default("===== tracing_tag =====");
-        debug_1.default(this.tracing_tag);
         const createJaegerInstance = () => {
             return {
                 span: this.span,
                 tracer: this.tracer,
-                tags,
+                tags: TAGS,
                 axios: (opts = undefined) => {
                     if (!opts)
                         return;
                     var options = {};
                     var headers = {};
-                    headers[tags.TRACING_TAG] = JSON.stringify(this.tracing_tag);
+                    headers[TAGS.TRACING_TAG] = JSON.stringify(this.tracing_tag);
                     this.tracer.inject(this.span, opentracing_1.FORMAT_HTTP_HEADERS, headers);
                     opts.headers = Object.assign(Object.assign({}, opts.headers), headers);
                     options = Object.assign({}, opts);
-                    debug_1.default("==========request headers======");
-                    debug_1.default(opts.headers);
                     return axios_1.default(options);
                 },
                 log: (name, content) => {
@@ -119,42 +120,44 @@ let JaegerInterceptor = class JaegerInterceptor {
                         return;
                     this.span.setTag(tag, val);
                     this.tracing_tag[tag] = val;
-                    debug_1.default("===== tracing_tag =====");
-                    debug_1.default(this.tracing_tag);
                 },
                 finish: () => {
                     if (!this.span)
                         return;
                     this.span.finish();
                 },
-                createSpan: (name) => {
+                createSpan: (name, parent) => {
+                    const parentObj = parent
+                        ? { childOf: parent }
+                        : { childOf: this.span };
                     if (!this.tracer)
                         return;
-                    return this.tracer.startSpan(name, { childOf: this.span });
-                }
+                    return this.tracer.startSpan(name, parentObj);
+                },
             };
         };
         req.jaeger = createJaegerInstance();
-        req.jaeger.setTag("request.ip", req.ip);
-        req.jaeger.setTag("request.method", req.method);
-        req.jaeger.setTag("request.headers", req.headers);
-        req.jaeger.setTag("request.path", req.path);
-        req.jaeger.setTag("request.body", req.body);
-        req.jaeger.setTag("request.query", req.query);
-        if (this.cb) {
-            this.cb(req, res);
+        req.jaeger.setTag("request.ip", req.ip || UNKNOW);
+        req.jaeger.setTag("request.method", req.method || UNKNOW);
+        req.jaeger.setTag("request.headers", req.headers || UNKNOW);
+        req.jaeger.setTag("request.path", req.path || UNKNOW);
+        req.jaeger.setTag("request.body", req.body || UNKNOW);
+        req.jaeger.setTag("request.query", req.query || UNKNOW);
+        if (this.req_cb) {
+            this.req_cb(req, res);
         }
-        return next
-            .handle()
-            .pipe(operators_1.tap(() => {
-            req.jaeger.setTag("response.state", res.statusCode);
-            req.jaeger.setTag("response.result", res.statusMessage);
+        return next.handle().pipe(operators_1.tap(() => {
+            if (this.res_cb) {
+                this.res_cb(req, res);
+            }
+            req.jaeger.setTag("response.state", res.statusCode || UNKNOW);
+            req.jaeger.setTag("response.result", res.statusMessage || UNKNOW);
             req.jaeger.finish();
         }));
     }
 };
 JaegerInterceptor = __decorate([
     common_1.Injectable(),
-    __metadata("design:paramtypes", [Object, Object, Object])
+    __metadata("design:paramtypes", [Object, Object, Object, Object])
 ], JaegerInterceptor);
 exports.JaegerInterceptor = JaegerInterceptor;

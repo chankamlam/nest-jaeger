@@ -72,9 +72,13 @@ bootstrap();
 ```
 
 ```
-  app.useGlobalInterceptors(new JaegerInterceptor(config,options,(req,res)=>{
-    // do something here
+  app.useGlobalInterceptors(new JaegerInterceptor(config,options,
+  (req,res)=>{
+    // do something here before request if u want
     req.jaeger.log("info","just for global log")
+  },
+  (req,res)=>{
+    // do some thing here before response if u want
   }));
 ```
 

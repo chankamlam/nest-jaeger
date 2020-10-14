@@ -54,16 +54,18 @@ export class JaegerInterceptor implements NestInterceptor {
   // tracing tag from request and will pass to remote call
   private tracing_tag: any = {};
   // callback function form user
-  private cb: any = undefined;
+  private req_cb: any = undefined;
+  private res_cb: any = undefined;
 
-  constructor(cfg?: {}, opt?: {}, cb?: undefined) {
+  constructor(cfg?: {}, opt?: {}, req_cb?: any, res_cb?: any) {
     // init tracer
     if (!this.tracer) {
       try {
         const config = { ...DEFAULT_CONFIG, ...cfg };
         const options = { ...DEFAULT_OPTION, ...opt };
         this.tracer = initTracer(config, options);
-        cb && (this.cb = cb);
+        this.req_cb = req_cb;
+        this.res_cb = res_cb;
         console.log("[*]Init tracer ... [ DONE ] ");
       } catch (error) {
         console.error("[*]Init tracer ... [ FAILED ] ");
@@ -172,14 +174,19 @@ export class JaegerInterceptor implements NestInterceptor {
     req.jaeger.setTag("request.query", req.query || UNKNOW);
     //////////////////////////////////////////////////
 
-    // handle customize callback from user
-    if (this.cb) {
-      this.cb(req, res);
+    // handle request callback
+    if (this.req_cb) {
+      this.req_cb(req, res);
     }
+
     ///////////////////////////////////////////////
 
     return next.handle().pipe(
       tap(() => {
+        // handle respose callback
+        if (this.res_cb) {
+          this.res_cb(req, res);
+        }
         //mark default tag of response
         req.jaeger.setTag("response.state", res.statusCode || UNKNOW);
         req.jaeger.setTag("response.result", res.statusMessage || UNKNOW);
