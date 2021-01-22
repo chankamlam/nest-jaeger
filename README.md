@@ -1,6 +1,6 @@
 # Nest-Jaeger
 
-```
+```mono
                  _        _
  _ __   ___  ___| |_     (_) __ _  ___  __ _  ___ _ __
 | '_ \ / _ \/ __| __|____| |/ _` |/ _ \/ _` |/ _ \ '__|
@@ -22,7 +22,7 @@ To fully understand Jaeger, it's helpful to be familiar with the [Jaeger project
 
 ## Installation
 
-```
+```bash
 npm i @chankamlam/nest-jaeger -S
 ```
 
@@ -35,7 +35,7 @@ for prodution
 
 ## Build up Jaeger Server Infra locally(development env)
 
-```
+```bash
 docker run -d -e COLLECTOR_ZIPKIN_HTTP_PORT=9411 -p5775:5775/udp -p6831:6831/udp -p6832:6832/udp \
   -p5778:5778 -p16686:16686 -p14268:14268 -p9411:9411 jaegertracing/all-in-one:latest
 ```
@@ -44,7 +44,7 @@ docker run -d -e COLLECTOR_ZIPKIN_HTTP_PORT=9411 -p5775:5775/udp -p6831:6831/udp
 
 ### main.ts
 
-```
+```ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import {JaegerInterceptor} from '@chankamlam/nest-jaeger'
@@ -53,86 +53,84 @@ async function bootstrap() {
   const config = {
     serviceName: 'service1-nest',
     sampler: {
-        type: "const",
-        param: 1
+      type: 'const',
+      param: 1
     },
     reporter: {
-        collectorEndpoint: "http://localhost:14268/api/traces"
+      collectorEndpoint: 'http://localhost:14268/api/traces'
     },
-};                                             // required
-const options = { baggagePrefix: "-Johua-" };  // optional,you can let options={}
+  };                                             // required
+  const options = { baggagePrefix: '-Johua-' };  // optional,you can let options={}
 
   // setup as global interceptor
   app.useGlobalInterceptors(new JaegerInterceptor(config,options));
   await app.listen(3000);
 }
 bootstrap();
-
-
 ```
 
-```
-  app.useGlobalInterceptors(new JaegerInterceptor(config,options,
-  (req,res)=>{
-    // do something here before request if u want
-    req.jaeger.log("info","just for global log")
-  },
-  (req,res)=>{
-    // do some thing here before response if u want
-  }));
+```ts
+app.useGlobalInterceptors(new JaegerInterceptor(config,options,
+(req,res)=>{
+  // do something here before request if you want
+  req.jaeger.log('info','just for global log')
+},
+(req,res)=>{
+  // do some thing here before response if you want
+}));
 ```
 
 ### Controller by using JaegerInterceptor
 
-```
+```ts
 import { Controller, Get, UseInterceptors } from '@nestjs/common';
 import { AppService } from './app.service';
-import {JaegerInterceptor} from "@chankamlam/nest-jaeger";
+import {JaegerInterceptor} from '@chankamlam/nest-jaeger';
 
 @Controller()
 export class AppController {
 
   @UseInterceptors(JaegerInterceptor)
-   @Get("/test")
-   test(){
-     return "test"
-   }
+  @Get('/test')
+  test(){
+    return 'test'
+  }
 }
 
 ```
 
 ### Controller except using JaegerInterceptor when binding JaegerInterceptor globally
 
-```
+```ts
 import { Controller, Get, UseInterceptors, SetMetadata,Req } from '@nestjs/common';
 import { AppService } from './app.service';
-import {JaegerInterceptor} from "@chankamlam/nest-jaeger";
+import {JaegerInterceptor} from '@chankamlam/nest-jaeger';
 
 @Controller()
 export class AppController {
 
+  // will use JaegerInterceptor when binding JaegerInterceptor globally
+  // using remote request by jaeger.axios
+  @Get('/remoteRequest')
+  async remoteRequest(@Req req) {
+    const result = await req.jaeger.axios({ url:'xxxxxx', method:'post', data: { key: '1234' }}).then(r=>r.data)
+    return result
+  }
+
    // will use JaegerInterceptor when binding JaegerInterceptor globally
-   // using remote request by jaeger.axios
-   @Get("/remoteRequest")
-   async remoteRequest(@Req req){
-     const result = await req.jaeger.axios({url:"xxxxxx",method:"post",data:{key:"1234"}}).then(r=>r.data)
-     return result
-   }
+  @Get('/test')
+  test(@Req req) {
+    req.jaeger.setTag(req.jaeger.tags.ERROR,true)
+    req.jaeger.log('error', 'err....') // jaeger object is binded after you use JaegerInterceptor globally
+    return 'test'
+  }
 
-    // will use JaegerInterceptor when binding JaegerInterceptor globally
-   @Get("/test")
-   test(@Req req){
-     req.jaeger.setTag(req.jaeger.tags.ERROR,true)
-     req.jaeger.log("error","err....") // jaeger object is binded after you use JaegerInterceptor globally
-     return "test"
-   }
-
-   // will not use JaegerInterceptor
-   @SetMetadata('ExceptJaegerInterceptor', true)
-   @Get("/except")
-   test(){
-     return "test"
-   }
+  // will not use JaegerInterceptor
+  @SetMetadata('ExceptJaegerInterceptor', true)
+  @Get('/except')
+  test() {
+    return 'test'
+  }
 }
 
 ```
@@ -148,127 +146,127 @@ export class AppController {
 
 > for detail, pls look up to [Jaeger Client for Node](https://www.npmjs.com/package/jaeger-client)
 
-```
+```ts
 {
-  serviceName: "string",           // required
-  disable: "boolean",
+  serviceName: 'string',           // required
+  disable: 'boolean',
   sampler: {
-    type: "string",                // required
-    param: "number",               // required
-    hostPort: "string",
-    host: "string",
-    port: "number",
-    refreshIntervalMs: "number"
+    type: 'string',                // required
+    param: 'number',               // required
+    hostPort: 'string',
+    host: 'string',
+    port: 'number',
+    refreshIntervalMs: 'number'
   },
   reporter: {
-    logSpans: "boolean",
-    agentHost: "string",
-    agentPort: "number",
-    collectorEndpoint: "string",   // required
-    username: "string",
-    password: "string",
-    flushIntervalMs: "number"
+    logSpans: 'boolean',
+    agentHost: 'string',
+    agentPort: 'number',
+    collectorEndpoint: 'string',   // required
+    username: 'string',
+    password: 'string',
+    flushIntervalMs: 'number'
   },
   throttler: {
-    host: "string",
-    port: "number",
-    refreshIntervalMs: "number"
+    host: 'string',
+    port: 'number',
+    refreshIntervalMs: 'number'
   }
 }
 ```
 
 ## _options_
 
-> for detail, pls look up to [Jaeger Client for Node](https://www.npmjs.com/package/jaeger-client)
+> for details, please see [Jaeger Client for Node](https://www.npmjs.com/package/jaeger-client)
 
-```
+```ts
 {
-    contextKey: "string",
-    baggagePrefix: "string",
-    metrics: "object", // a metrics
-    logger: "object",  // a logger
-    tags: "object",    // set of key-value pairs which will be set as process-level tags on the Tracer itself.
-    traceId128bit: "boolean",
-    shareRpcSpan: "boolean",
-    debugThrottler: "boolean",
+  contextKey: 'string',
+  baggagePrefix: 'string',
+  metrics: 'object', // a metrics
+  logger: 'object',  // a logger
+  tags: 'object',    // set of key-value pairs which will be set as process-level tags on the Tracer itself.
+  traceId128bit: 'boolean',
+  shareRpcSpan: 'boolean',
+  debugThrottler: 'boolean',
 }
 ```
 
 ## _jaeger_
 
-> jaeger object will bind in req when you do "app.use(jaeger(config,options))"
+> jaeger object will bind in req when you do `app.use(jaeger(config,options))`
 
-```
+```ts
 {
   // write the log to master span
-  log        : function(name,content)
+  log        : function(name, content)
 
   // setup tag to master span
-  setTag     : function(name,Value)
+  setTag     : function(name, value)
 
   // setup mutiple tags to master span
-  addTags    : function({k1:v1,k2:v2})
+  addTags    : function({ k1: v1, k2: v2 })
 
   /*
    * create a new span under parent span,
    * if parentSpan is undefine will create a new one under default master span
    */
-  createSpan : function(name,parentSpan?)
+  createSpan : function(name, parentSpan?)
 
   // all defined tags of opentracing which can be used
   tags       : object
 
   // using it to remote call service if not it will be broken the tracing to next service
-  axios      : function(url,options)
+  axios      : function(url, options)
 }
 ```
 
 ### _log_
 
-```
-req.jaeger.log("info","..........")
+```ts
+req.jaeger.log('info', '..........')
 ```
 
 ### _setTag_
 
-```
+```ts
 const jaeger = req.jaeger
 const tags = jaeger
 
 // using defined tags by opentracing
-jaeger.setTag(tags.ERROR,true)
+jaeger.setTag(tags.ERROR, true)
 
 // using your customize tag
-jaeger.setTag("warning",true)
+jaeger.setTag('warning', true)
 
 ```
 
 ### _setTracingTag_
 
-```
+```ts
 const jaeger = req.jaeger
-jaeger.setTracingTag("waybill","wb-123456")
+jaeger.setTracingTag('waybill', 'wb-123456')
 ```
 
 ### _addTags_
 
-```
+```ts
 const jaeger = req.jaeger
 const tags = jaeger
 
 // add mutiple tag one time
-jaeger.addTags({"error":true,"info":true})
+jaeger.addTags({ error: true, info: true })
 ```
 
 ### _createSpan_
 
-```
+```ts
 // create a sub span under master span
-const span = jaeger.createSpan("subSpanName")
+const span = jaeger.createSpan('subSpanName')
 
 // you also can call method of span
-span.log("info","info......")
-span.setTag("info",true)
+span.log('info', 'info......')
+span.setTag('info', true)
 
 // remember to call finish() if not there is no record send to jaeger
 span.finish();
